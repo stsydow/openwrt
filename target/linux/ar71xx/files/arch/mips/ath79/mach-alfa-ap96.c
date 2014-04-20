@@ -48,15 +48,11 @@ static struct gpio_keys_button alfa_ap96_gpio_keys[] __initdata = {
 	}
 };
 
-static int alfa_ap96_mmc_get_cd(struct device *dev)
-{
-        return !gpio_get_value(ALFA_AP96_GPIO_MICROSD_CD);
-}
-
 static struct mmc_spi_platform_data alfa_ap96_mmc_data = {
-	.get_cd		= alfa_ap96_mmc_get_cd,
 	.caps		= MMC_CAP_NEEDS_POLL,
 	.ocr_mask	= MMC_VDD_32_33 | MMC_VDD_33_34,
+	.flags = MMC_SPI_USE_CD_GPIO,
+	.cd_gpio = ALFA_AP96_GPIO_MICROSD_CD,
 };
 
 static struct ath79_spi_controller_data ap96_spi0_cdata = {
@@ -108,8 +104,6 @@ static void __init alfa_ap96_gpio_setup(void)
 	ath79_gpio_function_enable(AR71XX_GPIO_FUNC_SPI_CS1_EN |
 				   AR71XX_GPIO_FUNC_SPI_CS2_EN);
 
-	gpio_request(ALFA_AP96_GPIO_MICROSD_CD, "microSD CD");
-	gpio_direction_input(ALFA_AP96_GPIO_MICROSD_CD);
 	gpio_request(ALFA_AP96_GPIO_PCIE_RESET, "PCIe reset");
 	gpio_direction_output(ALFA_AP96_GPIO_PCIE_RESET, 1);
 	gpio_request(ALFA_AP96_GPIO_PCIE_W_DISABLE, "PCIe write disable");
