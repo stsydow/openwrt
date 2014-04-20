@@ -2,7 +2,7 @@
 +++ b/drivers/net/phy/at803x.c
 @@ -12,10 +12,12 @@
   */
- 
+
  #include <linux/phy.h>
 +#include <linux/mdio.h>
  #include <linux/module.h>
@@ -10,13 +10,14 @@
  #include <linux/netdevice.h>
  #include <linux/etherdevice.h>
 +#include <linux/platform_data/phy-at803x.h>
- 
+
  #define AT803X_INTR_ENABLE			0x12
  #define AT803X_INTR_STATUS			0x13
-@@ -28,10 +30,61 @@
+@@ -27,6 +30,22 @@
+ #define AT803X_MMD_ACCESS_CONTROL		0x0D
  #define AT803X_MMD_ACCESS_CONTROL_DATA		0x0E
  #define AT803X_FUNC_DATA			0x4003
- 
++
 +#define AT803X_PCS_SMART_EEE_CTRL3		0x805D
 +
 +#define AT803X_SMART_EEE_CTRL3_LPI_TX_DELAY_SEL_MASK   0x3
@@ -32,10 +33,13 @@
 +#define AT803X_DBG5_REG				0x05
 +#define AT803X_DBG5_RGMII_TX_CLK_DELAY_EN	BIT(8)
 +
- MODULE_DESCRIPTION("Atheros 803x PHY driver");
+ #define AT803X_DEBUG_ADDR			0x1D
+ #define AT803X_DEBUG_DATA			0x1E
+ #define AT803X_DEBUG_SYSTEM_MODE_CTRL		0x05
+@@ -36,6 +52,42 @@
  MODULE_AUTHOR("Matus Ujhelyi");
  MODULE_LICENSE("GPL");
- 
+
 +static u16
 +at803x_dbg_reg_rmw(struct phy_device *phydev, u16 reg, u16 clear, u16 set)
 +{
@@ -72,13 +76,13 @@
 +	at803x_dbg_reg_rmw(phydev, reg, clear, 0);
 +}
 +
- static void at803x_set_wol_mac_addr(struct phy_device *phydev)
+ static int at803x_set_wol(struct phy_device *phydev,
+ 			  struct ethtool_wolinfo *wol)
  {
- 	struct net_device *ndev = phydev->attached_dev;
-@@ -62,8 +115,16 @@ static void at803x_set_wol_mac_addr(stru
- 	}
+@@ -100,8 +153,16 @@ static void at803x_get_wol(struct phy_de
+ 		wol->wolopts |= WAKE_MAGIC;
  }
- 
+
 +static void at803x_disable_smarteee(struct phy_device *phydev)
 +{
 +	phy_write_mmd(phydev, MDIO_MMD_PCS, AT803X_PCS_SMART_EEE_CTRL3,
@@ -92,10 +96,10 @@
  	int val;
  	u32 features;
  	int status;
-@@ -105,6 +166,26 @@ static int at803x_config_init(struct phy
- 	status = phy_write(phydev, AT803X_INTR_ENABLE, AT803X_WOL_ENABLE);
- 	status = phy_read(phydev, AT803X_INTR_STATUS);
- 
+@@ -149,6 +200,26 @@ static int at803x_config_init(struct phy
+ 			return ret;
+ 	}
+
 +	pdata = dev_get_platdata(&phydev->dev);
 +	if (pdata) {
 +		if (pdata->disable_smarteee)
@@ -118,7 +122,7 @@
 +
  	return 0;
  }
- 
+
 --- /dev/null
 +++ b/include/linux/platform_data/phy-at803x.h
 @@ -0,0 +1,10 @@

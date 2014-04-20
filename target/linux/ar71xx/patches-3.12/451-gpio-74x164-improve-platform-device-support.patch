@@ -6,7 +6,7 @@
  	struct gen_74x164_chip_platform_data *pdata;
 +	struct device_node *np;
  	int ret;
- 
+
 -	if (!spi->dev.of_node) {
 -		dev_err(&spi->dev, "No device tree data available.\n");
 +	pdata = spi->dev.platform_data;
@@ -16,19 +16,19 @@
 +		dev_err(&spi->dev, "No configuration data available.\n");
  		return -EINVAL;
  	}
- 
+
 @@ -129,7 +133,6 @@ static int gen_74x164_probe(struct spi_d
  	if (!chip)
  		return -ENOMEM;
- 
--	pdata = spi->dev.platform_data;
+
+-	pdata = dev_get_platdata(&spi->dev);
  	if (pdata && pdata->base)
  		chip->gpio_chip.base = pdata->base;
  	else
 @@ -146,12 +149,19 @@ static int gen_74x164_probe(struct spi_d
  	chip->gpio_chip.get = gen_74x164_get_value;
  	chip->gpio_chip.set = gen_74x164_set_value;
- 
+
 -	if (of_property_read_u32(spi->dev.of_node, "registers-number", &chip->registers)) {
 -		dev_err(&spi->dev, "Missing registers-number property in the DT.\n");
 -		ret = -EINVAL;
@@ -42,7 +42,7 @@
 +	} else if (pdata) {
 +		chip->registers = pdata->num_registers;
  	}
- 
+
 +	if (!chip->registers)
 +		chip->registers = 1;
 +
@@ -52,7 +52,7 @@
 @@ -159,6 +169,9 @@ static int gen_74x164_probe(struct spi_d
  		goto exit_destroy;
  	}
- 
+
 +	if (pdata && pdata->init_data)
 +		memcpy(chip->buffer, pdata->init_data, chip->registers);
 +
@@ -70,5 +70,5 @@
 +	/* address of a buffer containing initial data */
 +	u8		*init_data;
  };
- 
+
  #endif
